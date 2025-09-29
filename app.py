@@ -98,4 +98,6 @@ def calculate_water_score(water):
         return 50, '• Придерживайтесь 6-8 стаканов\n• Проконсультируйтесь', 'very_high'
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+
