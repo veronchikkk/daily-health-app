@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Health</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e0f2fe;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .app-title {
+            font-size: 35px;
+            color: #1a3a6d;
+            margin-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #b3d9ff;
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: white;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #4d94ff;
+        }
+
+        .result {
+            background-color: #f8fdff;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #a3d5ff;
+            min-height: 150px;
+        }
+
+        .button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: background-color 0.3s;
+        }
+
+        .calculate-btn {
+            background-color: #3385ff;
+            color: white;
+        }
+
+        .calculate-btn:hover {
+            background-color: #1a75ff;
+        }
+
+        .advice-btn {
+            background-color: #e6b800;
+            color: white;
+            display: none;
+        }
+
+        .advice-btn:hover {
+            background-color: #d4a800;
+        }
+
+        .status-optimal { color: #2e8b57; }
+        .status-warning { color: #ff8c00; }
+        .status-danger { color: #dc143c; }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .popup-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close-btn {
+            background-color: #b3b3b3;
+            color: #333;
+            margin-top: 15px;
+        }
+
+        .close-btn:hover {
+            background-color: #999;
+        }
+
+        .advice-section {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .advice-section h3 {
+            color: #1a3a6d;
+            margin-bottom: 10px;
+        }
+
+        .advice-section p {
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="app-title">Daily Health</h1>
+        </div>
+
+        <div class="input-group">
+            <label for="sleep">Часы сна (8-10 оптимально):</label>
+            <input type="number" id="sleep" value="5" step="0.1">
+        </div>
+
+        <div class="input-group">
+            <label for="school">Часы учебы (3-5 оптимально):</label>
+            <input type="number" id="school" value="4" step="0.1">
+        </div>
+
+        <div class="input-group">
+            <label for="steps">Шаги (8,000-12,000 оптимально):</label>
+            <input type="number" id="steps" value="8000">
+        </div>
+
+        <div class="input-group">
+            <label for="water">Стаканы воды (6-8 оптимально):</label>
+            <input type="number" id="water" value="6">
+        </div>
+
+        <div class="result" id="result">
+            Введите данные и нажмите кнопку
+        </div>
+
+        <button class="button calculate-btn" onclick="calculateHealth()">Рассчитать</button>
+        <button class="button advice-btn" id="adviceBtn" onclick="showAdvice()">Как улучшить показатели?</button>
+    </div>
+
+    <div class="popup" id="advicePopup">
+        <div class="popup-content">
+            <h2>Ваши персонализированные советы</h2>
+            <div id="adviceContent"></div>
+            <button class="button close-btn" onclick="closeAdvice()">Закрыть</button>
+        </div>
+    </div>
+
+    <script>
+        let currentResults = null;
+
+        async function calculateHealth() {
+            const sleep = document.getElementById('sleep').value;
+            const school = document.getElementById('school').value;
+            const steps = document.getElementById('steps').value;
+            const water = document.getElementById('water').value;
+
+            try {
+                const response = await fetch('/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sleep: sleep,
+                        school: school,
+                        steps: steps,
+                        water: water
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    document.getElementById('result').textContent = result.error;
+                    return;
+                }
+
+                currentResults = result;
+                displayResults(result);
+                
+            } catch (error) {
+                document.getElementById('result').textContent = 'Ошибка соединения!';
+            }
+        }
+
+        function displayResults(result) {
+            let message = `<strong>Ваш индекс здоровья: ${result.total_score}/100</strong><br><br>`;
+            message += '<strong>ДЕТАЛИЗАЦИЯ:</strong><br>';
+
+            message += getStatusMessage('Сон', result.details.sleep.status, result.details.sleep.value);
+            message += getStatusMessage('Учеба', result.details.school.status, result.details.school.value);
+            message += getStatusMessage('Шаги', result.details.steps.status, result.details.steps.value);
+            message += getStatusMessage('Вода', result.details.water.status, result.details.water.value);
+
+            message += '<br>';
+            if (result.total_score >= 80) {
+                message += 'Отличный результат! Так держать!';
+            } else if (result.total_score >= 60) {
+                message += 'Хорошо! Есть к чему стремиться!';
+            } else {
+                message += 'Есть над чем поработать!';
+            }
+
+            document.getElementById('result').innerHTML = message;
+
+            // Показываем/скрываем кнопку советов
+            const adviceBtn = document.getElementById('adviceBtn');
+            if (result.problems.length > 0) {
+                adviceBtn.style.display = 'block';
+                adviceBtn.textContent = `Советы по: ${result.problems.join(', ')}`;
+            } else {
+                adviceBtn.style.display = 'none';
+            }
+        }
+
+        function getStatusMessage(name, status, value) {
+            if (status === 'optimal') {
+                return `   <span class="status-optimal">✅ ${name}: ${value} - в норме</span><br>`;
+            } else if (status === 'low') {
+                return `   <span class="status-warning">⚠️ ${name}: ${value} - ниже нормы</span><br>`;
+            } else if (status === 'high') {
+                return `   <span class="status-warning">⚠️ ${name}: ${value} - выше нормы</span><br>`;
+            } else {
+                return `   <span class="status-danger">❌ ${name}: ${value} - сильно отклоняется</span><br>`;
+            }
+        }
+
+        function showAdvice() {
+            if (!currentResults) return;
+
+            let adviceHTML = '';
+            let hasAdvice = false;
+
+            if (currentResults.details.sleep.status !== 'optimal') {
+                hasAdvice = true;
+                adviceHTML += `<div class="advice-section">
+                    <h3>СОВЕТЫ ПО СНУ</h3>
+                    <p>${currentResults.details.sleep.advice.replace(/\n/g, '<br>')}</p>
+                </div>`;
+            }
+
+            if (currentResults.details.school.status !== 'optimal') {
+                hasAdvice = true;
+                adviceHTML += `<div class="advice-section">
+                    <h3>СОВЕТЫ ПО УЧЕБЕ</h3>
+                    <p>${currentResults.details.school.advice.replace(/\n/g, '<br>')}</p>
+                </div>`;
+            }
+
+            if (currentResults.details.steps.status !== 'optimal') {
+                hasAdvice = true;
+                adviceHTML += `<div class="advice-section">
+                    <h3>СОВЕТЫ ПО АКТИВНОСТИ</h3>
+                    <p>${currentResults.details.steps.advice.replace(/\n/g, '<br>')}</p>
+                </div>`;
+            }
+
+            if (currentResults.details.water.status !== 'optimal') {
+                hasAdvice = true;
+                adviceHTML += `<div class="advice-section">
+                    <h3>СОВЕТЫ ПО ВОДЕ</h3>
+                    <p>${currentResults.details.water.advice.replace(/\n/g, '<br>')}</p>
+                </div>`;
+            }
+
+            if (!hasAdvice) {
+                adviceHTML = `<div class="advice-section">
+                    <h3>ОБЩИЕ РЕКОМЕНДАЦИИ</h3>
+                    <p>• Соблюдайте баланс между учебой и отдыхом<br>• Регулярно занимайтесь спортом<br>• Пейте достаточное количество воды<br>• Спите 8-10 часов в сутки<br>• Делайте перерывы во время учебы</p>
+                </div>`;
+            }
+
+            adviceHTML += '<p><strong>Начните с 1-2 советов и постепенно улучшайте остальные!</strong></p>';
+            document.getElementById('adviceContent').innerHTML = adviceHTML;
+            document.getElementById('advicePopup').style.display = 'block';
+        }
+
+        function closeAdvice() {
+            document.getElementById('advicePopup').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
